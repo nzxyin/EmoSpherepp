@@ -1,0 +1,54 @@
+[project]
+name = "emospherepp"
+version = "0.1.0"
+description = "EmoSphere++ (Cho et al., TAFFC 2025) -- inference + evaluation environment (no Docker; uv-managed)"
+readme = "README.md"
+requires-python = ">=3.10,<3.11"
+dependencies = [
+    # --- core model (models/tts/EmoSpherepp, models/vocoder/bigvgan) ---
+    "torch",
+    "torchaudio",
+    "numpy",
+    "scipy",
+    "einops",
+    "packaging",
+    "pyyaml",
+    "six",
+    # Matcha-TTS-derived decoder: transformer.py imports GEGLU/GELU/AdaLayerNorm/
+    # AdaLayerNormZero/ApproximateGELU from diffusers.models.attention, Attention
+    # from attention_processor, LoRACompatibleLinear from diffusers.models.lora.
+    # models/lora.py still exists (deprecated shim) through at least 0.35.x;
+    # pinned below 0.36 so a future removal can't silently break the import.
+    "diffusers>=0.30,<0.36",
+    # lucidrains' conformer (decoder.py: `from conformer import ConformerBlock`)
+    "conformer",
+    # --- text front-end (data_gen/tts/txt_processors/en.py) ---
+    # g2p_en 2.1.0 calls nltk.download('averaged_perceptron_tagger') but nltk>=3.9
+    # renamed the resource to *_eng and pos_tag() then fails to find it -- pin.
+    "g2p_en",
+    "nltk<3.9",
+    # --- reference-feature extractors ---
+    # WavLM x-vector (microsoft/wavlm-base-sv) + audeering VAD regressor
+    "transformers>=4.40,<5",
+    # emotion2vec+ base (iic/emotion2vec_plus_base, 768-d) via funasr, hub=hf
+    "funasr",
+    "huggingface-hub",
+    # --- audio I/O and the repo's mel / loudness utilities ---
+    "librosa",
+    "soundfile",
+    "pyloudnorm",
+    # --- vocoder: speechbrain/tts-hifigan-libritts-16kHz (16 kHz, 80 mel, hop 256,
+    # n_fft/win 1024, fmin 0 / fmax 8000, natural-log magnitude mel -- the same mel
+    # parameterization EmoSphere++ was trained on; the paper's BigVGAN-16k
+    # checkpoint was never released) ---
+    "speechbrain",
+    # --- misc used by repo utils ---
+    "matplotlib",
+    "pandas",
+    "tqdm",
+]
+
+[tool.uv]
+# Keep the whole venv off $HOME (100 GB quota): the real environment lives on
+# /data and .venv is a symlink to it -- see scripts/setup_env.sh.
+package = false
