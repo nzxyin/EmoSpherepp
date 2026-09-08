@@ -101,15 +101,30 @@ ESD scoring completed 2026-09-08 01:20 after a rerun off `babel-l9-16` (onnxrunt
 import failure there). All numbers: `/data/user_data/xoy/EmoSpherepp_eval/results/`
 (`eval_<tag>.json`, per-utterance `eval_<tag>_per_utt.json`).
 
-| test set | n | WER | UTMOSv2 | DNSMOS_ovr | speaker_cos | emotion_cos | pred/GT dur |
-|---|---|---|---|---|---|---|---|
-| LJSpeech test | 150 | 10.60% | 2.926 ±0.042 | 3.159 ±0.020 | 0.173 ±0.011 | 0.880 ±0.018 | 1.20 |
-| LibriTTS-R test-clean | 4830 | 14.54% | 2.912 ±0.011 | 3.141 ±0.005 | 0.270 ±0.004 | 0.858 ±0.004 | 1.36 |
-| LibriTTS-R test-other | 5106 | 16.55% | 2.863 ±0.011 | 3.130 ±0.005 | 0.225 ±0.003 | 0.837 ±0.004 | 1.44 |
-| ESD test | 1500 | 18.96% | 2.683 ±0.023 | 3.076 ±0.011 | 0.567 ±0.012 | 0.933 ±0.005 | 1.10 |
-| *anchor:* ESD GT mel → HiFi-GAN | 1500 | 15.67% | 2.996 ±0.025 | 3.093 ±0.012 | 0.950 ±0.001 | 0.974 ±0.003 | 1.05 |
-| *anchor:* LJSpeech GT mel → HiFi-GAN | 150 | 7.04% | 3.398 ±0.044 | 3.081 ±0.047 | 0.960 ±0.002 | 0.984 ±0.003 | 1.02 |
-| *anchor:* same, vocoder-native (center=True) mel | 150 | 7.16% | 3.440 ±0.040 | 3.092 ±0.044 | 0.961 ±0.002 | 0.985 ±0.003 | 1.03 |
+WER = raw (lower-case only, punctuation kept — articulatory-tts's convention until
+its GH #32 fix on 2026-09-08); WER-n = the same transcripts after Whisper's
+`EnglishTextNormalizer` (`whisper_processor.tokenizer.normalize`, both sides,
+empty normalized references skipped — articulatory-tts's WER since that fix and the
+TTS repo's `wer_whisper_normalized`). Computed from the stored per-utterance text
+by `eval/normalized_wer.py` (`eval/results_wer_normalized.md`).
+
+| test set | n | WER | WER-n | UTMOSv2 | DNSMOS_ovr | speaker_cos | emotion_cos | pred/GT dur |
+|---|---|---|---|---|---|---|---|---|
+| LJSpeech test | 150 | 10.60% | 4.16% | 2.926 ±0.042 | 3.159 ±0.020 | 0.173 ±0.011 | 0.880 ±0.018 | 1.20 |
+| LibriTTS-R test-clean | 4830 | 14.54% | 4.31% | 2.912 ±0.011 | 3.141 ±0.005 | 0.270 ±0.004 | 0.858 ±0.004 | 1.36 |
+| LibriTTS-R test-other | 5106 | 16.55% | 5.39% | 2.863 ±0.011 | 3.130 ±0.005 | 0.225 ±0.003 | 0.837 ±0.004 | 1.44 |
+| ESD test | 1500 | 18.96% | 8.72% | 2.683 ±0.023 | 3.076 ±0.011 | 0.567 ±0.012 | 0.933 ±0.005 | 1.10 |
+| *anchor:* ESD GT mel → HiFi-GAN | 1500 | 15.67% | 2.84% | 2.996 ±0.025 | 3.093 ±0.012 | 0.950 ±0.001 | 0.974 ±0.003 | 1.05 |
+| *anchor:* LJSpeech GT mel → HiFi-GAN | 150 | 7.04% | 1.72% | 3.398 ±0.044 | 3.081 ±0.047 | 0.960 ±0.002 | 0.984 ±0.003 | 1.02 |
+| *anchor:* same, vocoder-native (center=True) mel | 150 | 7.16% | 1.75% | 3.440 ±0.040 | 3.092 ±0.044 | 0.961 ±0.002 | 0.985 ±0.003 | 1.03 |
+
+Raw-GT floors (articulatory-tts `sparc_resynth_baselines/gt_transcripts_*`,
+re-scored both ways): LJSpeech 6.97 / **1.60**, test-clean 10.60 / **2.27**,
+test-other 13.51 / **4.11**, ESD 15.05 / **2.78** (raw / WER-n). SPARC
+resynthesis: 6.78 / 1.83, 11.25 / 3.09, 15.46 / 6.33, 18.16 / 4.70.
+articulatory-tts's *model* WERs in this file are raw only (their per-utterance
+transcripts were not saved), except the 300-utt ESD diagnostic in its CLAUDE.md
+(3.5% zero-shot / 2.5% fine-tuned, WER-n).
 
 For comparison, articulatory-tts's own anchors on the identical sets (its
 `sparc_resynth_baselines/`): raw GT WER 7.0 / 10.6 / 13.5 / 15.1% (LJSpeech /
@@ -135,9 +150,15 @@ Findings:
   articulatory-tts reaches 0.57–0.60 on the same set (its emotion conditioning is a
   label, not a reference embedding, so the comparison favours EmoSphere++ by design).
   Surprise is the weakest emotion on every metric (WER 23%, UTMOSv2 2.39).
-- **Intelligibility**: EmoSphere++ WER is 1.5–2× articulatory-tts on the read-speech
-  sets (10.6 vs 6.6%, 14.5 vs 8.5%, 16.6 vs 10.7%) — and 3.6 pp above the vocoder
-  ceiling on LJSpeech (7.0%), so it is the acoustic model, not the vocoder.
+- **Intelligibility**: EmoSphere++ raw WER is 1.5–2× articulatory-tts on the
+  read-speech sets (10.6 vs 6.6%, 14.5 vs 8.5%, 16.6 vs 10.7%) — and 3.6 pp above
+  the vocoder ceiling on LJSpeech (7.0%), so it is the acoustic model, not the
+  vocoder. Whisper normalization removes most of the *absolute* level (LJSpeech
+  10.6 → 4.2%, test-clean 14.5 → 4.3%, ESD 19.0 → 8.7%): ~60–70% of the raw errors
+  are punctuation/formatting. The gaps to the floors survive normalization
+  (LJSpeech 4.16 vs 1.72 anchor / 1.60 GT; ESD 8.72 vs 2.84 / 2.78; test-clean 4.31
+  vs 2.27 GT; test-other 5.39 vs 4.11 GT), i.e. the model adds ~2.5 pp of genuine
+  word errors on read speech and ~6 pp on emotional speech.
 - **Speaker similarity is the weak spot**: 0.17–0.27 vs 0.44–0.69 for
   articulatory-tts, while the same vocoder resynthesizes GT at 0.96 — an
   8-speaker-ESD-trained x-vector conditioning does not transfer to unseen

@@ -5,6 +5,15 @@ direction live in [CLAUDE.md](CLAUDE.md); this file is the chronological record.
 
 ## 2026-09-08
 
+- Whisper-normalized WER (`wer_whisper_normalized`, EnglishTextNormalizer via
+  `WhisperTokenizer.normalize` on both sides, empty normalized refs skipped —
+  identical to articulatory-tts's GH #32 fix and the TTS repo's extra key) added
+  to every results JSON by `eval/normalized_wer.py` (CPU job
+  `scripts/run_normalized_wer.sh`, 10357908) from the stored transcripts, with
+  the articulatory-tts GT/SPARC-resynthesis floors re-scored the same way
+  (`eval/results_wer_normalized.md`). `score_wav_pairs.py` now records the
+  normalized text and the metric inline for future runs; raw `wer` kept for
+  comparability with the pre-fix articulatory-tts tables.
 - Forked upstream to github.com/nzxyin/EmoSpherepp (`origin`; the original is
   `upstream`) and pushed this work as four commits: lazy `monotonic_align` import,
   uv environment + checkpoint download, inference/evaluation pipeline, docs.

@@ -4,7 +4,12 @@ stack, models and aggregation as articulatory-tts/eval_full_testset.py's score()
 model, so for an external TTS system the scoring half is reproduced here):
 
   wer            Whisper large-v3 (transformers, float32, language=en, task=transcribe),
-                 lowercased ref/hyp, CORPUS-level jiwer.wer over the whole set (ci95=None)
+                 lowercased ref/hyp, CORPUS-level jiwer.wer over the whole set (ci95=None) --
+                 the raw convention articulatory-tts used until 2026-09-08 (GH #32)
+  wer_whisper_normalized  same pairs after whisper_processor.tokenizer.normalize() on both
+                 sides (Whisper's EnglishTextNormalizer: punctuation, casing, numbers, spelling),
+                 pairs with an empty normalized reference skipped -- articulatory-tts's WER
+                 since its GH #32 fix, and the TTS repo's extra key of the same name
   utmosv2        utmosv2.create_model(pretrained=True).predict(...)  (16 kHz)
   dnsmos_*       torchmetrics DNSMOS (personalized=False): p808, sig, bak, ovr
   speaker_cosine ECAPA-TDNN speechbrain/spkrec-ecapa-voxceleb encode_batch cosine, pred vs GT,
@@ -101,6 +106,7 @@ def main():
         whisper_processor = WhisperProcessor.from_pretrained("openai/whisper-large-v3")
         whisper_model = WhisperForConditionalGeneration.from_pretrained(
             "openai/whisper-large-v3", torch_dtype=torch.float32).to(device).eval()
+        whisper_normalize = whisper_processor.tokenizer.normalize
         import jiwer
     if not args.skip_speaker:
         from speechbrain.inference.speaker import EncoderClassifier
@@ -194,7 +200,9 @@ def main():
                 if uid in reference_texts:
                     hyp = whisper_transcribe(pred_wav, pred_sr)
                     ref_lower, hyp_lower = reference_texts[uid].lower(), hyp.lower()
-                    rec.update({"wer": jiwer.wer(ref_lower, hyp_lower), "wer_reference": ref_lower, "wer_hypothesis": hyp_lower})
+                    rec.update({"wer": jiwer.wer(ref_lower, hyp_lower), "wer_reference": ref_lower, "wer_hypothesis": hyp_lower,
+                                "wer_reference_normalized": whisper_normalize(ref_lower),
+                                "wer_hypothesis_normalized": whisper_normalize(hyp_lower)})
                 else:
                     rec["_wer_skipped"] = True  # no reference text -> excluded from WER only (as in eval_full_testset.py)
 
@@ -228,6 +236,13 @@ def main():
         wer_refs = [r["wer_reference"] for r in recs if "wer_hypothesis" in r]
         wer_hyps = [r["wer_hypothesis"] for r in recs if "wer_hypothesis" in r]
         summary["wer"] = {"mean": jiwer.wer(wer_refs, wer_hyps) if wer_refs else None, "ci95": None, "n": len(wer_refs)}
+        # Normalized variant (records from older runs lack the *_normalized keys; eval/normalized_wer.py
+        # back-fills wer_whisper_normalized for those from the stored raw text).
+        npairs = [(r["wer_reference_normalized"], r["wer_hypothesis_normalized"]) for r in recs
+                  if "wer_reference_normalized" in r and r["wer_reference_normalized"].strip()]
+        if npairs:
+            summary["wer_whisper_normalized"] = {"mean": jiwer.wer([a for a, _ in npairs], [b for _, b in npairs]),
+                                                 "ci95": None, "n": len(npairs)}
     if not args.skip_speaker:
         summary["speaker_cosine"] = summarize([r["speaker_cosine"] for r in recs if "speaker_cosine" in r])
     n_scored = len(recs)
