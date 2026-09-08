@@ -155,50 +155,58 @@ unseen voices the output carries essentially no speaker identity, and the little
 has comes with the emotion embedding rather than the x-vector. Per-emotion WER-n on
 unseen speakers: 9.4 / 5.2 / 9.6 / 10.1 / 9.8% (N/A/H/S/Su).
 
+**Bottom line.** As a zero-shot baseline on these splits EmoSphere++ is a strong
+emotion-transfer model (ESD emotion_cos 0.93, within 0.04 of the vocoder ceiling)
+whose speaker cloning does not leave its 8 training voices (speaker_cos 0.15–0.27 on
+every unseen speaker vs 0.67 seen) and whose intelligibility trails articulatory-tts
+by 1.5–2× raw / ~2.5 pp normalized on read speech. Quality (UTMOSv2/DNSMOS) is below
+articulatory-tts on read speech and above it on in-domain ESD. Absolute quality
+numbers carry an unquantifiable vocoder-substitution penalty (HiFi-GAN-16k for the
+unreleased BigVGAN-16k); everything relative to the `*_resynth` anchors does not.
+
 Findings:
-- **Speaker cloning works for seen speakers only**: ESD seen 0.67 vs unseen 0.15,
-  and 0.17–0.27 on LJSpeech/LibriTTS — the WavLM x-vector conditioning, trained on
-  8 ESD voices, does not generalize zero-shot. The vocoder is not the cause (GT
-  resynthesis gives 0.95–0.96 everywhere).
-- **Emotion**: ESD emotion_cos 0.933 (anchor 0.974) — the emotion2vec+ reference
-  embedding and VAD-derived spherical vector transfer the reference's emotion well;
-  articulatory-tts reaches 0.57–0.60 on the same set (its emotion conditioning is a
-  label, not a reference embedding, so the comparison favours EmoSphere++ by design).
-  Angry and Sad transfer best (0.966 / 0.964), Happy worst (0.899). Surprise is the
-  weakest emotion on every metric (WER-n 10.2%, UTMOSv2 2.39, DNSMOS 2.98) — but it is
-  also the hardest for the vocoder anchor (WER-n 3.7%, UTMOSv2 2.68), so roughly a
-  third of Surprise's deficit is the emotional GT itself. The model's added WER-n over
-  the anchor is 4.7–6.5 pp for every emotion (smallest for Angry, largest for Sad).
-- **Intelligibility**: EmoSphere++ raw WER is 1.5–2× articulatory-tts on the
-  read-speech sets (10.6 vs 6.6%, 14.5 vs 8.5%, 16.6 vs 10.7%) — and 3.6 pp above
-  the vocoder ceiling on LJSpeech (7.0%), so it is the acoustic model, not the
-  vocoder. Whisper normalization removes most of the *absolute* level (LJSpeech
-  10.6 → 4.2%, test-clean 14.5 → 4.3%, ESD 19.0 → 8.7%): ~60–70% of the raw errors
-  are punctuation/formatting. The gaps to the floors survive normalization
-  (LJSpeech 4.16 vs 1.72 anchor / 1.60 GT; ESD 8.72 vs 2.84 / 2.78; test-clean 4.31
-  vs 2.27 GT; test-other 5.39 vs 4.11 GT), i.e. the model adds ~2.5 pp of genuine
-  word errors on read speech and ~6 pp on emotional speech.
-- **Speaker similarity is the weak spot**: 0.17–0.27 vs 0.44–0.69 for
-  articulatory-tts, while the same vocoder resynthesizes GT at 0.96 — an
-  8-speaker-ESD-trained x-vector conditioning does not transfer to unseen
-  LJSpeech/LibriTTS voices (emotion2vec/x-vector zero-shot generalization, not a
-  pipeline artifact).
-- **Quality**: UTMOSv2 2.86–2.93 and DNSMOS_ovr 3.13–3.16 sit ~0.2–0.3 below
-  articulatory-tts on the read-speech sets; on ESD (in-domain for EmoSphere++)
-  UTMOSv2 2.68 / DNSMOS 3.08 beat articulatory-tts's 2.47–2.53 / 2.90–2.92.
-  Resynthesis UTMOSv2 3.40 (LJSpeech) / 3.00 (ESD) shows the HiFi-GAN vocoder
-  itself costs ~0.1–0.55 UTMOSv2 vs raw GT (3.95 / 3.11).
-- **ESD WER 19.0%** vs 15.1% raw-GT / 15.7% anchor floor and articulatory-tts's
-  12.8–13.9%: on emotional speech the acoustic model adds ~3 pp over the floor,
-  the same gap as on LJSpeech; articulatory-tts's TTS output is *easier* for
-  Whisper than the emotional GT itself.
-- **Vocoder framing mismatch is negligible**: feeding the vocoder EmoSphere++'s
-  center=False mels vs. its native center=True mels changes the LJSpeech anchor by
-  +0.04 UTMOSv2 / +0.01 DNSMOS / +0.1 pp WER — all inside the ±ci95. The vocoder
-  substitution itself (HiFi-GAN vs. the unreleased BigVGAN-16k) remains the one
-  unquantifiable gap vs. the paper.
-- **Pace**: outputs are 20–45% longer than GT on read speech (ESD ~9%): the ESD-trained
-  duration predictor speaks slowly on long audiobook sentences. Whisper truncates at
-  30 s, which penalizes the longest LibriTTS items (per-utt macro WER 19.5/24.0%
-  vs corpus 14.5/16.6%). Worst-WER cases are mostly punctuation/normalization
-  (refs keep quotes/dashes, same lower-case-only scoring as articulatory-tts).
+- **Speaker identity is a seen-speaker effect.** ESD seen 0.67 vs unseen 0.15, and
+  0.17–0.27 on LJSpeech/LibriTTS, while the same vocoder resynthesizes GT at
+  0.95–0.96 everywhere — the WavLM x-vector conditioning trained on 8 ESD voices
+  does not transfer zero-shot (the paper's "unseen" claim was also only ESD 0013/0019).
+  Per emotion, seen speakers score 0.63–0.70 and unseen 0.05–0.19, so the failure is
+  independent of emotion; intelligibility/quality barely differ seen vs unseen.
+- **Emotion transfer is the strength.** ESD emotion_cos 0.933 (anchor 0.974); Angry and
+  Sad best (0.966 / 0.964), Happy worst (0.899). articulatory-tts reaches 0.57–0.60 on
+  the same set, but its emotion conditioning is a label rather than a reference
+  embedding, so the comparison favours EmoSphere++ by design. Surprise is the weakest
+  emotion on every metric (WER-n 10.2%, UTMOSv2 2.39, DNSMOS 2.98) — a third of that is
+  the emotional GT itself (anchor WER-n 3.7%, UTMOSv2 2.68).
+- **Intelligibility.** Raw WER is 1.5–2× articulatory-tts on read speech (10.6 vs 6.6%,
+  14.5 vs 8.5%, 16.6 vs 10.7%). Whisper normalization removes ~60–70% of the raw errors
+  as punctuation/formatting (LJSpeech 10.6 → 4.2%, test-clean 14.5 → 4.3%, ESD 19.0 →
+  8.7%) but the gaps to the floors survive: ~2.5 pp of genuine word errors on read speech
+  (4.16 vs 1.72 anchor / 1.60 GT on LJSpeech; 4.31 vs 2.27 GT test-clean; 5.39 vs 4.11 GT
+  test-other) and ~6 pp on emotional speech (8.72 vs 2.84 anchor / 2.78 GT), 4.7–6.5 pp
+  over the anchor in every emotion. The raw ESD gap (19.0 vs 15.7 floor) understated
+  this because emotional GT is itself hard for Whisper's punctuation.
+- **Quality.** UTMOSv2 2.86–2.93 / DNSMOS_ovr 3.13–3.16 sit ~0.2–0.3 below
+  articulatory-tts on read speech; on in-domain ESD, UTMOSv2 2.68 / DNSMOS 3.08 beat its
+  2.47–2.53 / 2.90–2.92. Resynthesis UTMOSv2 3.40 (LJSpeech) / 3.00 (ESD) vs raw GT
+  3.95 / 3.11 bounds the vocoder's own cost at ~0.1–0.55 UTMOSv2.
+- **Vocoder framing mismatch is negligible**: center=False (EmoSphere++) vs the
+  vocoder's native center=True mels moves the LJSpeech anchor by +0.04 UTMOSv2 /
+  +0.01 DNSMOS / +0.1 pp WER, all inside ±ci95.
+- **Pace.** Outputs run 20–45% longer than GT on read speech (ESD ~9%): the ESD-trained
+  duration predictor is slow on long audiobook sentences, and Whisper's 30 s window
+  truncates the longest LibriTTS items (per-utt macro WER 19.5 / 24.0% vs corpus
+  14.5 / 16.6%). `length_scale` was left at 1.0 (the paper's setting); a known-rate
+  condition like articulatory-tts's would need a per-utterance rate hint the model
+  lacks.
+
+Not done / possible follow-ups (none blocking):
+- **Unpaired reference** (`--ref_mode pair`, EmoSphere++'s own "up_" protocol, ESD
+  only): not run — the paired condition matches articulatory-tts. Expect lower
+  emotion_cos and slightly lower speaker_cos than the paired numbers above.
+- **Vocoder**: if upstream ever releases BigVGAN-16k, only `load_vocoder` in
+  `eval/synthesize.py` changes; rerun synth + score (features/manifests are reusable).
+- **articulatory-tts WER-n for its models** is unavailable (no saved transcripts); its
+  eval now normalizes by default, so future comparisons should use the WER-n column.
+- Upstream issue worth filing on Choddeok/EmoSpherepp if the user wants: inference
+  needs the never-shipped `phone_set.json` (reproducible from `esd_text_emo.txt`, see
+  `eval/build_phone_set.py`) and the vocoder checkpoint.

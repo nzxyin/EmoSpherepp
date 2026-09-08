@@ -5,6 +5,8 @@ direction live in [CLAUDE.md](CLAUDE.md); this file is the chronological record.
 
 ## 2026-09-08
 
+- CLAUDE.md Status/results finalized: consolidated findings, bottom line, and
+  follow-ups (unpaired-reference run, vocoder swap, WER-n comparators).
 - Review of the breakdown scripts (2 lenses, 2 refuters): grouping, WER definitions and
   emotion-cosine fidelity confirmed correct; one robustness finding fixed -- every
   reader of the append-only per-utterance JSONL now goes through the tolerant
