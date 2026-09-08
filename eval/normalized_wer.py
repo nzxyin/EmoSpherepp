@@ -17,7 +17,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from common import RESULTS_DIR  # noqa: E402
+from common import RESULTS_DIR, read_jsonl  # noqa: E402
 
 
 def pairs_from_records(recs):
@@ -34,7 +34,7 @@ def pairs_from_records(recs):
 
 def load_pairs(path):
     if path.endswith(".jsonl"):
-        recs = [json.loads(l) for l in open(path) if l.strip()]
+        recs = read_jsonl(path)
     else:
         d = json.load(open(path))
         recs = list(d.values()) if isinstance(d, dict) else d

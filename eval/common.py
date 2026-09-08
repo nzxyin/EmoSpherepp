@@ -131,6 +131,21 @@ def load_reference_texts(dataset, ids):
     return texts
 
 
+def read_jsonl(path):
+    """Tolerant JSONL reader: the per-utterance checkpoint files are appended to by
+    preempt-tier jobs, so a job evicted mid-write can leave one torn trailing line.
+    Drop such a line with a warning instead of failing every later reader."""
+    rows = []
+    with open(path) as f:
+        for line in f:
+            if not line.strip():
+                continue
+            try:
+                rows.append(json.loads(line))
+            except json.JSONDecodeError:
+                print(f"WARNING: dropping unparsable line in {path} (job was likely preempted mid-write)")
+    return rows
+
+
 def load_manifest(dataset):
-    with open(os.path.join(MANIFEST_DIR, f"{dataset}.jsonl")) as f:
-        return [json.loads(l) for l in f if l.strip()]
+    return read_jsonl(os.path.join(MANIFEST_DIR, f"{dataset}.jsonl"))

@@ -14,7 +14,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from common import RESULTS_DIR, UNSEEN_SPEAKERS, load_manifest  # noqa: E402
+from common import RESULTS_DIR, UNSEEN_SPEAKERS, load_manifest, read_jsonl  # noqa: E402
 
 EMOTIONS = ["Neutral", "Angry", "Happy", "Sad", "Surprise"]
 
@@ -40,10 +40,8 @@ def main():
 
     partial = os.path.join(args.results_dir, f"eval_{args.tag}.json.partial.jsonl")
     recs = {}
-    for l in open(partial):
-        if l.strip():
-            d = json.loads(l)
-            recs[d.pop("uid")] = d
+    for d in read_jsonl(partial):
+        recs[d.pop("uid")] = d
     meta = {r["uid"]: r for r in load_manifest(args.dataset)}
     emo_path = os.path.join(args.results_dir, f"eval_{args.tag}_emotion_per_utt.json")
     emo_cos = json.load(open(emo_path)) if os.path.exists(emo_path) else {}

@@ -35,7 +35,13 @@ for p in paths:
     print("   speaker_cosine %s | emotion_cosine %s" % (fmt(m, "speaker_cosine"), fmt(m, "emotion_cosine")))
     partial = p + ".partial.jsonl"
     if os.path.exists(partial):
-        recs = [json.loads(l) for l in open(partial) if l.strip()]
+        recs = []
+        for l in open(partial):
+            if l.strip():
+                try:
+                    recs.append(json.loads(l))
+                except json.JSONDecodeError:
+                    print("   WARNING: dropping unparsable checkpoint line (job was likely preempted mid-write)")
         ratios = [r["pred_sec"] / r["gt_sec"] for r in recs if r.get("gt_sec")]
         if ratios:
             print("   pred/gt duration ratio: median=%.3f mean=%.3f min=%.2f max=%.2f (n=%d)" % (st.median(ratios), st.mean(ratios), min(ratios), max(ratios), len(ratios)))

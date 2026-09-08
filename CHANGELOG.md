@@ -5,6 +5,12 @@ direction live in [CLAUDE.md](CLAUDE.md); this file is the chronological record.
 
 ## 2026-09-08
 
+- Review of the breakdown scripts (2 lenses, 2 refuters): grouping, WER definitions and
+  emotion-cosine fidelity confirmed correct; one robustness finding fixed -- every
+  reader of the append-only per-utterance JSONL now goes through the tolerant
+  `common.read_jsonl` (a torn trailing line from a mid-write preemption is dropped
+  with a warning instead of crashing `breakdown.py` / `normalized_wer.py` /
+  `inspect_results.py` forever).
 - Per-emotion / seen-vs-unseen breakdown for ESD (`eval/breakdown.py`, tables in
   `eval/results_esd_breakdown.md` and `eval/results_esd_resynth_breakdown.md`,
   JSON in results/) with raw and Whisper-normalized WER, UTMOSv2, DNSMOS, speaker

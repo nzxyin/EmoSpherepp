@@ -153,16 +153,9 @@ def main():
     partial_path = args.partial_path or (args.results_path + ".partial.jsonl")
     per_utt_records = {}
     if os.path.exists(partial_path):
-        with open(partial_path) as f:
-            for line in f:
-                if not line.strip():
-                    continue
-                try:
-                    rec = json.loads(line)
-                except json.JSONDecodeError:
-                    print("WARNING: dropping truncated checkpoint line (job was likely preempted mid-write)")
-                    continue
-                per_utt_records[rec.pop("uid")] = rec
+        from common import read_jsonl
+        for rec in read_jsonl(partial_path):
+            per_utt_records[rec.pop("uid")] = rec
 
     def complete(rec):
         if not args.skip_audio and "utmosv2" not in rec:
