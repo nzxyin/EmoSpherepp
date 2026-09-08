@@ -5,6 +5,13 @@ direction live in [CLAUDE.md](CLAUDE.md); this file is the chronological record.
 
 ## 2026-09-08
 
+- Per-emotion / seen-vs-unseen breakdown for ESD (`eval/breakdown.py`, tables in
+  `eval/results_esd_breakdown.md` and `eval/results_esd_resynth_breakdown.md`,
+  JSON in results/) with raw and Whisper-normalized WER, UTMOSv2, DNSMOS, speaker
+  and emotion cosine. Emotion cosine per utterance via the new
+  `eval/emotion_cosine_per_utt.py` (same emotion2vec+ large / funasr / 0.1 s guard
+  as articulatory-tts's `score_side_metric.py`; the whole-set mean reproduces the
+  merged 0.933 / 0.974). GPU job `scripts/run_breakdown.sh` (10358103, 4m45s).
 - Whisper-normalized WER (`wer_whisper_normalized`, EnglishTextNormalizer via
   `WhisperTokenizer.normalize` on both sides, empty normalized refs skipped —
   identical to articulatory-tts's GH #32 fix and the TTS repo's extra key) added

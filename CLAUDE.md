@@ -134,11 +134,26 @@ test-clean 8.4–8.5%, 3.02–3.12, 3.22–3.25, 0.69; test-other 10.7–11.0%,
 2.97–3.09, 3.17–3.19, 0.61; ESD 12.8–13.9%, 2.47–2.53, 2.90–2.92, 0.40–0.41,
 emotion_cos 0.57–0.60.
 
-ESD breakdown (`eval_esd.json.partial.jsonl`): seen speakers (n=1200) WER 18.7%,
-UTMOSv2 2.70, speaker_cos **0.670**; unseen 0013/0019 (n=300) WER 20.1%, UTMOSv2
-2.63, speaker_cos **0.154**. Per emotion (WER / UTMOSv2 / DNSMOS_ovr): Neutral 17.0
-/ 2.93 / 3.11, Angry 17.2 / 2.79 / 3.19, Happy 18.5 / 2.67 / 3.08, Sad 18.8 / 2.62 /
-3.02, Surprise 23.3 / 2.39 / 2.98.
+ESD breakdown (`eval/breakdown.py` → `eval/results_esd_breakdown.md`,
+`eval_esd_breakdown.json`; anchor rows from `results_esd_resynth_breakdown.md`;
+emotion_cos per utterance from `eval/emotion_cosine_per_utt.py`, same model/guard
+as articulatory-tts's `score_side_metric.py`):
+
+| ESD group | n | WER | WER-n | UTMOSv2 | DNSMOS_ovr | speaker_cos | emotion_cos | anchor WER-n / UTMOSv2 / emo |
+|---|---|---|---|---|---|---|---|---|
+| Neutral | 300 | 17.00% | 7.66% | 2.934 ±0.044 | 3.112 ±0.020 | 0.573 ±0.031 | 0.926 ±0.010 | 1.82% / 3.264 / 0.984 |
+| Angry | 300 | 17.18% | 7.29% | 2.794 ±0.045 | 3.188 ±0.017 | 0.568 ±0.025 | 0.966 ±0.007 | 2.55% / 3.116 / 0.978 |
+| Happy | 300 | 18.48% | 8.89% | 2.674 ±0.054 | 3.081 ±0.025 | 0.552 ±0.023 | 0.899 ±0.013 | 2.87% / 2.975 / 0.970 |
+| Sad | 300 | 18.81% | 9.62% | 2.623 ±0.044 | 3.022 ±0.024 | 0.600 ±0.025 | 0.964 ±0.007 | 3.24% / 2.948 / 0.975 |
+| Surprise | 300 | 23.32% | 10.16% | 2.389 ±0.052 | 2.980 ±0.026 | 0.541 ±0.023 | 0.912 ±0.014 | 3.69% / 2.675 / 0.962 |
+| seen speakers (8) | 1200 | 18.67% | 8.70% | 2.697 ±0.026 | 3.080 ±0.012 | **0.670 ±0.005** | 0.935 ±0.005 | 2.71% / 2.980 / 0.972 |
+| unseen 0013, 0019 | 300 | 20.12% | 8.80% | 2.627 ±0.049 | 3.063 ±0.023 | **0.154 ±0.012** | 0.925 ±0.012 | 3.33% / 3.056 / 0.978 |
+
+Emotion × speaker subset (speaker_cos): seen 0.63–0.70 for every emotion; unseen
+0.05 (Neutral), 0.17 (Angry), 0.19 (Happy), 0.19 (Sad), 0.17 (Surprise) — i.e. for
+unseen voices the output carries essentially no speaker identity, and the little it
+has comes with the emotion embedding rather than the x-vector. Per-emotion WER-n on
+unseen speakers: 9.4 / 5.2 / 9.6 / 10.1 / 9.8% (N/A/H/S/Su).
 
 Findings:
 - **Speaker cloning works for seen speakers only**: ESD seen 0.67 vs unseen 0.15,
@@ -149,7 +164,11 @@ Findings:
   embedding and VAD-derived spherical vector transfer the reference's emotion well;
   articulatory-tts reaches 0.57–0.60 on the same set (its emotion conditioning is a
   label, not a reference embedding, so the comparison favours EmoSphere++ by design).
-  Surprise is the weakest emotion on every metric (WER 23%, UTMOSv2 2.39).
+  Angry and Sad transfer best (0.966 / 0.964), Happy worst (0.899). Surprise is the
+  weakest emotion on every metric (WER-n 10.2%, UTMOSv2 2.39, DNSMOS 2.98) — but it is
+  also the hardest for the vocoder anchor (WER-n 3.7%, UTMOSv2 2.68), so roughly a
+  third of Surprise's deficit is the emotional GT itself. The model's added WER-n over
+  the anchor is 4.7–6.5 pp for every emotion (smallest for Angry, largest for Sad).
 - **Intelligibility**: EmoSphere++ raw WER is 1.5–2× articulatory-tts on the
   read-speech sets (10.6 vs 6.6%, 14.5 vs 8.5%, 16.6 vs 10.7%) — and 3.6 pp above
   the vocoder ceiling on LJSpeech (7.0%), so it is the acoustic model, not the
