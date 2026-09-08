@@ -11,7 +11,10 @@ import random
 
 import torch
 import torch.nn.functional as F
-import monotonic_align
+try:  # only needed by compute_loss (training-time MAS); inference never calls it
+    import monotonic_align
+except ImportError:  # pragma: no cover
+    monotonic_align = None
 from models.tts.EmoSpherepp.base import BaseModule
 from models.tts.EmoSpherepp.text_encoder import TextEncoder
 from models.tts.EmoSpherepp.flow_matching import CFM
